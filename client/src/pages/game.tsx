@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import shaktiImg from "@assets/Picsart_25-12-16_18-16-30-724_1765911686574.png";
 import monsterImg from "@assets/Picsart_25-12-16_16-08-38-272_1765911686514.png";
-import bgImg from "@assets/generated_images/seamless_indian_village_game_background.png";
+import bgImg from "@assets/file_00000000ab0872069c039a5e50504181_1765912257095.png";
 import coinImg from "@assets/Picsart_25-12-16_16-27-54-748_1765911686624.png";
 import treeImg from "@assets/Picsart_25-12-16_18-27-29-612_1765911686654.png";
 import jumpAudioFile from "@assets/Yeeeaaaee_1765912135361.mp3";
 
 // Game Constants
 // Physics: y is height above ground (positive is up)
-const GRAVITY = -0.55; // Lower gravity for floatier, "upwards" feel
-const JUMP_FORCE = 16;  // Higher jump
+const GRAVITY = -0.55; 
+const JUMP_FORCE = 16;
 const SPEED_INCREMENT = 0.0005;
 
 export default function Game() {
@@ -26,12 +26,12 @@ export default function Game() {
   const playerRef = useRef({ y: 0, dy: 0, grounded: true });
   const obstaclesRef = useRef<{ id: number; x: number; w: number; h: number; type: 'rock' | 'bush' | 'tree' }[]>([]);
   const coinsRef = useRef<{ id: number; x: number; y: number; collected: boolean }[]>([]);
-  const gameSpeedRef = useRef(7); // Start slightly faster for smoothness
+  const gameSpeedRef = useRef(7); 
   const scoreRef = useRef(0);
   const requestRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const bgOffsetRef = useRef(0);
-  const nextIdRef = useRef(0); // Unique IDs for keys
+  const nextIdRef = useRef(0); 
   const jumpSoundRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -43,7 +43,6 @@ export default function Game() {
       playerRef.current.dy = JUMP_FORCE;
       playerRef.current.grounded = false;
       
-      // Play jump sound
       if (jumpSoundRef.current) {
         jumpSoundRef.current.currentTime = 0;
         jumpSoundRef.current.play().catch(e => console.log("Audio play failed", e));
@@ -71,7 +70,7 @@ export default function Game() {
     // --- Physics ---
     const player = playerRef.current;
     
-    // Gravity (pulls down, so negative)
+    // Gravity
     player.dy += GRAVITY;
     player.y += player.dy;
 
@@ -94,9 +93,9 @@ export default function Game() {
       let height = 50;
 
       if (typeRand > 0.65) {
-        type = 'tree'; // Barrier tree (Use the new image)
-        width = 70; 
-        height = 90; 
+        type = 'tree'; 
+        width = 80; 
+        height = 100; 
       } else if (typeRand > 0.35) {
         type = 'bush';
         width = 60;
@@ -120,7 +119,7 @@ export default function Game() {
       coinsRef.current.push({
         id: nextIdRef.current++,
         x: 1300,
-        y: Math.random() > 0.5 ? 160 : 70, // Higher coins
+        y: Math.random() > 0.5 ? 180 : 80, // Coins higher to match jump
         collected: false
       });
     }
@@ -140,17 +139,17 @@ export default function Game() {
     coinsRef.current = coinsRef.current.filter(c => c.x > -100);
 
     // Collision Detection
-    // Player: x=100, y=player.y
+    // Player position fixed at x=100
+    // Adjusted hitbox for larger player sprite
     const playerHitbox = { 
-      x: 100 + 20, // Tighter hitbox x
+      x: 100 + 30, 
       y: player.y, 
-      w: 30, 
-      h: 60 
+      w: 40, 
+      h: 80 
     };
 
     // Check Obstacles
     for (const obs of obstaclesRef.current) {
-      // Forgive boundaries slightly
       const obsHitbox = { 
         x: obs.x + 10, 
         y: 0, 
@@ -164,22 +163,18 @@ export default function Game() {
         playerHitbox.y < obsHitbox.y + obsHitbox.h &&
         playerHitbox.y + playerHitbox.h > obsHitbox.y
       ) {
-        // HIT!
         setGameState("hit");
-        
-        // Glimpse: Freeze for 1.5 seconds then show Game Over
         setTimeout(() => {
           setGameState("gameover");
         }, 1500);
-        
-        return; // Stop update loop immediately
+        return; 
       }
     }
 
     // Check Coins
     coinsRef.current.forEach(c => {
       if (c.collected) return;
-      const coinHitbox = { x: c.x, y: c.y, w: 40, h: 40 }; // Easier to collect coins
+      const coinHitbox = { x: c.x, y: c.y, w: 40, h: 40 }; 
       
       if (
         playerHitbox.x < coinHitbox.x + coinHitbox.w &&
@@ -192,11 +187,8 @@ export default function Game() {
       }
     });
 
-    // Score
     scoreRef.current += 0.15;
     setScore(Math.floor(scoreRef.current));
-    
-    // Force re-render
     setTick(prev => prev + 1);
 
     requestRef.current = requestAnimationFrame(update);
@@ -209,7 +201,6 @@ export default function Game() {
     };
   }, [update]);
 
-  // Reset Game
   const resetGame = () => {
     playerRef.current = { y: 0, dy: 0, grounded: true };
     obstaclesRef.current = [];
@@ -229,7 +220,8 @@ export default function Game() {
         className="absolute inset-0 h-full w-[200%] bg-repeat-x"
         style={{ 
           backgroundImage: `url(${bgImg})`,
-          backgroundSize: 'auto 100%',
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center',
           transform: `translateX(-${bgOffsetRef.current % window.innerWidth}px)`,
           willChange: 'transform'
         }}
@@ -250,15 +242,15 @@ export default function Game() {
         </Card>
       </div>
 
-      {/* Game Area Container */}
-      <div className="absolute inset-x-0 bottom-0 h-[300px]">
+      {/* Game Area Container - Lifted Up as requested */}
+      <div className="absolute inset-x-0 bottom-[80px] h-[300px]">
         
-        {/* Floor Line (visual) */}
-        <div className="absolute bottom-0 w-full h-4 bg-transparent z-10" />
+        {/* Floor Line (visual guide) */}
+        {/* <div className="absolute bottom-0 w-full h-1 bg-red-500/30 z-50" /> */}
 
-        {/* Player (Shakti) */}
+        {/* Player (Shakti) - Made Bigger */}
         <div 
-          className="absolute left-[100px] bottom-0 w-[80px] h-[100px] z-30"
+          className="absolute left-[100px] bottom-0 w-[140px] h-[170px] z-30"
           style={{ 
             transform: `translateY(${-playerRef.current.y}px)`,
             willChange: 'transform'
@@ -267,13 +259,12 @@ export default function Game() {
           <img src={shaktiImg} alt="Shakti" className="w-full h-full object-contain drop-shadow-lg" />
         </div>
 
-        {/* Monster (Chirag) - Chasing behind */}
-        {/* Moved WAY further back as requested */}
-        <div className="absolute left-[-150px] bottom-0 w-[140px] h-[160px] z-20 animate-bounce" style={{ animationDuration: '2.5s' }}>
+        {/* Monster (Chirag) - Brought forward and Made Bigger */}
+        <div className="absolute left-[50px] bottom-0 w-[180px] h-[200px] z-20 animate-bounce" style={{ animationDuration: '2.5s' }}>
           <img src={monsterImg} alt="Chirag" className="w-full h-full object-contain drop-shadow-xl opacity-90" />
         </div>
 
-        {/* Obstacles & Coins Rendering Loop */}
+        {/* Obstacles Loop */}
         {obstaclesRef.current.map((obs) => (
           <div
             key={`obs-${obs.id}`}
@@ -301,6 +292,7 @@ export default function Game() {
           </div>
         ))}
 
+        {/* Coins Loop */}
         {coinsRef.current.map((c) => !c.collected && (
           <div
             key={`coin-${c.id}`}
@@ -308,8 +300,8 @@ export default function Game() {
             style={{ 
               left: c.x, 
               bottom: c.y,
-              width: 40, 
-              height: 40 
+              width: 50, 
+              height: 50 
             }}
           >
             <img src={coinImg} className="w-full h-full object-contain animate-[spin_3s_linear_infinite] rounded-full shadow-sm" />
@@ -325,7 +317,7 @@ export default function Game() {
         onTouchStart={handleJump}
       />
 
-      {/* Hit / Glimpse Overlay (optional visual cue) */}
+      {/* Hit Effect */}
       {gameState === "hit" && (
          <div className="absolute inset-0 z-50 bg-red-500/20 animate-pulse pointer-events-none" />
       )}

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import shaktiImg from "@assets/Picsart_25-12-16_18-16-30-724_1765911686574.png";
 import monsterImg from "@assets/Picsart_25-12-16_16-08-38-272_1765911686514.png";
-import bgImg from "@assets/generated_images/seamless_indian_village_game_background.png";
+import bgImg from "@assets/file_00000000ab0872069c039a5e50504181_1765912257095.png";
 
 export default function Home() {
   return (
@@ -14,7 +14,7 @@ export default function Home() {
         style={{ 
           backgroundImage: `url(${bgImg})`, 
           backgroundSize: 'cover',
-          backgroundPosition: 'center bottom'
+          backgroundPosition: 'center center'
         }} 
       />
 

@@ -1,8 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import shaktiImg from "@assets/generated_images/cartoon_indian_boy_running_side_view.png";
-import monsterImg from "@assets/generated_images/cartoon_funny_monster_chasing_side_view.png";
+import shaktiImg from "@assets/Picsart_25-12-16_18-16-30-724_1765911686574.png";
+import monsterImg from "@assets/Picsart_25-12-16_16-08-38-272_1765911686514.png";
 import bgImg from "@assets/generated_images/seamless_indian_village_game_background.png";
 
 export default function Home() {

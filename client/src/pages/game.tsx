@@ -3,11 +3,12 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import shaktiImg from "@assets/generated_images/cartoon_indian_boy_running_side_view.png";
-import monsterImg from "@assets/generated_images/cartoon_funny_monster_chasing_side_view.png";
+import shaktiImg from "@assets/Picsart_25-12-16_18-16-30-724_1765911686574.png";
+import monsterImg from "@assets/Picsart_25-12-16_16-08-38-272_1765911686514.png";
 import bgImg from "@assets/generated_images/seamless_indian_village_game_background.png";
-import coinImg from "@assets/generated_images/shiny_gold_game_coin.png";
-import treeImg from "@assets/generated_images/cartoon_barrier_tree_obstacle.png";
+import coinImg from "@assets/Picsart_25-12-16_16-27-54-748_1765911686624.png";
+import treeImg from "@assets/Picsart_25-12-16_18-27-29-612_1765911686654.png";
+import jumpAudioFile from "@assets/Yeeeaaaee_1765912135361.mp3";
 
 // Game Constants
 // Physics: y is height above ground (positive is up)
@@ -31,11 +32,22 @@ export default function Game() {
   const lastTimeRef = useRef<number | null>(null);
   const bgOffsetRef = useRef(0);
   const nextIdRef = useRef(0); // Unique IDs for keys
+  const jumpSoundRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    jumpSoundRef.current = new Audio(jumpAudioFile);
+  }, []);
 
   const handleJump = useCallback(() => {
     if (playerRef.current.grounded && gameState === "playing") {
       playerRef.current.dy = JUMP_FORCE;
       playerRef.current.grounded = false;
+      
+      // Play jump sound
+      if (jumpSoundRef.current) {
+        jumpSoundRef.current.currentTime = 0;
+        jumpSoundRef.current.play().catch(e => console.log("Audio play failed", e));
+      }
     }
   }, [gameState]);
 
@@ -82,9 +94,9 @@ export default function Game() {
       let height = 50;
 
       if (typeRand > 0.65) {
-        type = 'tree'; // Barrier tree
-        width = 90; // Wider
-        height = 110; // Taller
+        type = 'tree'; // Barrier tree (Use the new image)
+        width = 70; 
+        height = 90; 
       } else if (typeRand > 0.35) {
         type = 'bush';
         width = 60;
@@ -140,9 +152,9 @@ export default function Game() {
     for (const obs of obstaclesRef.current) {
       // Forgive boundaries slightly
       const obsHitbox = { 
-        x: obs.x + 20, 
+        x: obs.x + 10, 
         y: 0, 
-        w: obs.w - 40, 
+        w: obs.w - 20, 
         h: obs.h - 10
       }; 
       
@@ -227,7 +239,7 @@ export default function Game() {
       <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-50">
         <Card className="p-3 bg-white/90 backdrop-blur border-2 border-primary shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl flex gap-4 items-center">
           <div className="flex items-center gap-2">
-            <img src={coinImg} className="w-6 h-6 animate-pulse" />
+            <img src={coinImg} className="w-8 h-8 rounded-full shadow-sm animate-pulse object-cover" />
             <span className="text-xl font-bold text-yellow-600 font-sans">{coins}</span>
           </div>
           <div className="h-6 w-[2px] bg-slate-200"></div>
@@ -246,7 +258,7 @@ export default function Game() {
 
         {/* Player (Shakti) */}
         <div 
-          className="absolute left-[100px] bottom-0 w-[60px] h-[80px] z-30"
+          className="absolute left-[100px] bottom-0 w-[80px] h-[100px] z-30"
           style={{ 
             transform: `translateY(${-playerRef.current.y}px)`,
             willChange: 'transform'
@@ -257,7 +269,7 @@ export default function Game() {
 
         {/* Monster (Chirag) - Chasing behind */}
         {/* Moved WAY further back as requested */}
-        <div className="absolute left-[-150px] bottom-0 w-[120px] h-[130px] z-20 animate-bounce" style={{ animationDuration: '2.5s' }}>
+        <div className="absolute left-[-150px] bottom-0 w-[140px] h-[160px] z-20 animate-bounce" style={{ animationDuration: '2.5s' }}>
           <img src={monsterImg} alt="Chirag" className="w-full h-full object-contain drop-shadow-xl opacity-90" />
         </div>
 
@@ -273,7 +285,7 @@ export default function Game() {
             }}
           >
              {obs.type === 'tree' ? (
-               <img src={treeImg} alt="Tree" className="w-full h-full object-contain drop-shadow-md scale-110 origin-bottom" />
+               <img src={treeImg} alt="Tree" className="w-full h-full object-contain drop-shadow-md origin-bottom rounded-lg" />
              ) : (
                <div 
                 className="w-full h-full"
@@ -296,11 +308,11 @@ export default function Game() {
             style={{ 
               left: c.x, 
               bottom: c.y,
-              width: 30, 
-              height: 30 
+              width: 40, 
+              height: 40 
             }}
           >
-            <img src={coinImg} className="w-full h-full object-contain animate-[spin_3s_linear_infinite]" />
+            <img src={coinImg} className="w-full h-full object-contain animate-[spin_3s_linear_infinite] rounded-full shadow-sm" />
           </div>
         ))}
 

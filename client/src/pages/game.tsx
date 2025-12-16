@@ -7,31 +7,31 @@ import shaktiImg from "@assets/generated_images/cartoon_indian_boy_running_side_
 import monsterImg from "@assets/generated_images/cartoon_funny_monster_chasing_side_view.png";
 import bgImg from "@assets/generated_images/seamless_indian_village_game_background.png";
 import coinImg from "@assets/generated_images/shiny_gold_game_coin.png";
+import treeImg from "@assets/generated_images/cartoon_barrier_tree_obstacle.png";
 
 // Game Constants
-const GRAVITY = 0.6;
-const JUMP_FORCE = -12;
-const SPEED_INCREMENT = 0.001;
-const OBSTACLE_SPAWN_RATE = 2000; // ms
-const COIN_SPAWN_RATE = 1500; // ms
+// Physics: y is height above ground (positive is up)
+const GRAVITY = -0.55; // Lower gravity for floatier, "upwards" feel
+const JUMP_FORCE = 16;  // Higher jump
+const SPEED_INCREMENT = 0.0005;
 
 export default function Game() {
-  const [gameState, setGameState] = useState<"playing" | "gameover">("playing");
+  const [gameState, setGameState] = useState<"playing" | "hit" | "gameover">("playing");
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState(0);
+  const [, setTick] = useState(0); // Force re-render for smooth animation
   
-  // Refs for game loop state (to avoid re-renders)
+  // Refs for game loop state
   const playerRef = useRef({ y: 0, dy: 0, grounded: true });
-  const obstaclesRef = useRef<{ x: number; w: number; h: number; type: 'rock' | 'bush' }[]>([]);
-  const coinsRef = useRef<{ x: number; y: number; collected: boolean }[]>([]);
-  const gameSpeedRef = useRef(5);
+  const obstaclesRef = useRef<{ id: number; x: number; w: number; h: number; type: 'rock' | 'bush' | 'tree' }[]>([]);
+  const coinsRef = useRef<{ id: number; x: number; y: number; collected: boolean }[]>([]);
+  const gameSpeedRef = useRef(7); // Start slightly faster for smoothness
   const scoreRef = useRef(0);
   const requestRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const bgOffsetRef = useRef(0);
+  const nextIdRef = useRef(0); // Unique IDs for keys
 
-  // Audio refs (mock for now, or we could generate sounds)
-  
   const handleJump = useCallback(() => {
     if (playerRef.current.grounded && gameState === "playing") {
       playerRef.current.dy = JUMP_FORCE;
@@ -55,18 +55,16 @@ export default function Game() {
     if (gameState !== "playing") return;
 
     if (!lastTimeRef.current) lastTimeRef.current = time;
-    const deltaTime = time - lastTimeRef.current;
-    lastTimeRef.current = time;
-
+    
     // --- Physics ---
     const player = playerRef.current;
     
-    // Gravity
+    // Gravity (pulls down, so negative)
     player.dy += GRAVITY;
     player.y += player.dy;
 
     // Ground collision
-    if (player.y > 0) {
+    if (player.y < 0) {
       player.y = 0;
       player.dy = 0;
       player.grounded = true;
@@ -77,21 +75,40 @@ export default function Game() {
     bgOffsetRef.current += gameSpeedRef.current;
 
     // --- Spawning ---
-    // Simple random spawning logic based on distance/frames would be better, 
-    // but for this mockup, we'll just check probabilities per frame or use intervals
     if (Math.random() < 0.015) {
-      obstaclesRef.current.push({
-        x: 1000, // Start off screen
-        w: 50,
-        h: 50,
-        type: Math.random() > 0.5 ? 'rock' : 'bush'
-      });
+      const typeRand = Math.random();
+      let type: 'rock' | 'bush' | 'tree' = 'rock';
+      let width = 50;
+      let height = 50;
+
+      if (typeRand > 0.65) {
+        type = 'tree'; // Barrier tree
+        width = 90; // Wider
+        height = 110; // Taller
+      } else if (typeRand > 0.35) {
+        type = 'bush';
+        width = 60;
+        height = 50;
+      }
+
+      // Minimum distance check
+      const lastObs = obstaclesRef.current[obstaclesRef.current.length - 1];
+      if (!lastObs || lastObs.x < 800) {
+         obstaclesRef.current.push({
+          id: nextIdRef.current++,
+          x: 1300 + Math.random() * 300, 
+          w: width,
+          h: height,
+          type
+        });
+      }
     }
 
     if (Math.random() < 0.02) {
       coinsRef.current.push({
-        x: 1000,
-        y: Math.random() > 0.5 ? -100 : -50, // High or low coin
+        id: nextIdRef.current++,
+        x: 1300,
+        y: Math.random() > 0.5 ? 160 : 70, // Higher coins
         collected: false
       });
     }
@@ -102,8 +119,7 @@ export default function Game() {
     obstaclesRef.current.forEach(obs => {
       obs.x -= gameSpeedRef.current;
     });
-    // Remove off-screen
-    obstaclesRef.current = obstaclesRef.current.filter(obs => obs.x > -100);
+    obstaclesRef.current = obstaclesRef.current.filter(obs => obs.x > -200);
 
     // Coins
     coinsRef.current.forEach(c => {
@@ -111,13 +127,24 @@ export default function Game() {
     });
     coinsRef.current = coinsRef.current.filter(c => c.x > -100);
 
-    // Collision Detection (Hitbox)
-    // Player roughly: x=50, y=player.y (from bottom), w=60, h=80
-    const playerHitbox = { x: 50, y: 300 - player.y - 80, w: 40, h: 60 }; // simplified
+    // Collision Detection
+    // Player: x=100, y=player.y
+    const playerHitbox = { 
+      x: 100 + 20, // Tighter hitbox x
+      y: player.y, 
+      w: 30, 
+      h: 60 
+    };
 
     // Check Obstacles
     for (const obs of obstaclesRef.current) {
-      const obsHitbox = { x: obs.x, y: 300 - obs.h, w: obs.w, h: obs.h }; // Ground obstacles
+      // Forgive boundaries slightly
+      const obsHitbox = { 
+        x: obs.x + 20, 
+        y: 0, 
+        w: obs.w - 40, 
+        h: obs.h - 10
+      }; 
       
       if (
         playerHitbox.x < obsHitbox.x + obsHitbox.w &&
@@ -125,14 +152,22 @@ export default function Game() {
         playerHitbox.y < obsHitbox.y + obsHitbox.h &&
         playerHitbox.y + playerHitbox.h > obsHitbox.y
       ) {
-        setGameState("gameover");
+        // HIT!
+        setGameState("hit");
+        
+        // Glimpse: Freeze for 1.5 seconds then show Game Over
+        setTimeout(() => {
+          setGameState("gameover");
+        }, 1500);
+        
+        return; // Stop update loop immediately
       }
     }
 
     // Check Coins
     coinsRef.current.forEach(c => {
       if (c.collected) return;
-      const coinHitbox = { x: c.x, y: 300 + c.y, w: 30, h: 30 };
+      const coinHitbox = { x: c.x, y: c.y, w: 40, h: 40 }; // Easier to collect coins
       
       if (
         playerHitbox.x < coinHitbox.x + coinHitbox.w &&
@@ -146,8 +181,11 @@ export default function Game() {
     });
 
     // Score
-    scoreRef.current += 0.1;
+    scoreRef.current += 0.15;
     setScore(Math.floor(scoreRef.current));
+    
+    // Force re-render
+    setTick(prev => prev + 1);
 
     requestRef.current = requestAnimationFrame(update);
   }, [gameState]);
@@ -164,7 +202,7 @@ export default function Game() {
     playerRef.current = { y: 0, dy: 0, grounded: true };
     obstaclesRef.current = [];
     coinsRef.current = [];
-    gameSpeedRef.current = 5;
+    gameSpeedRef.current = 7;
     scoreRef.current = 0;
     bgOffsetRef.current = 0;
     setScore(0);
@@ -173,7 +211,7 @@ export default function Game() {
   };
 
   return (
-    <div className="w-full h-screen overflow-hidden bg-sky-200 relative font-sans select-none">
+    <div className="w-full h-screen overflow-hidden bg-sky-200 relative font-sans select-none touch-none">
       {/* Background Parallax */}
       <div 
         className="absolute inset-0 h-full w-[200%] bg-repeat-x"
@@ -181,7 +219,7 @@ export default function Game() {
           backgroundImage: `url(${bgImg})`,
           backgroundSize: 'auto 100%',
           transform: `translateX(-${bgOffsetRef.current % window.innerWidth}px)`,
-          transition: 'transform 0s linear' // managed by loop
+          willChange: 'transform'
         }}
       />
       
@@ -200,7 +238,7 @@ export default function Game() {
         </Card>
       </div>
 
-      {/* Game Area Container (for positioning elements relative to a "floor") */}
+      {/* Game Area Container */}
       <div className="absolute inset-x-0 bottom-0 h-[300px]">
         
         {/* Floor Line (visual) */}
@@ -208,45 +246,56 @@ export default function Game() {
 
         {/* Player (Shakti) */}
         <div 
-          className="absolute left-[50px] bottom-0 w-[60px] h-[80px] z-20 transition-transform duration-75"
+          className="absolute left-[100px] bottom-0 w-[60px] h-[80px] z-30"
           style={{ 
             transform: `translateY(${-playerRef.current.y}px)`,
+            willChange: 'transform'
           }}
         >
           <img src={shaktiImg} alt="Shakti" className="w-full h-full object-contain drop-shadow-lg" />
         </div>
 
         {/* Monster (Chirag) - Chasing behind */}
-        <div className="absolute left-[-20px] bottom-0 w-[80px] h-[90px] z-20 animate-bounce" style={{ animationDuration: '2s' }}>
-          <img src={monsterImg} alt="Chirag" className="w-full h-full object-contain drop-shadow-xl" />
+        {/* Moved WAY further back as requested */}
+        <div className="absolute left-[-150px] bottom-0 w-[120px] h-[130px] z-20 animate-bounce" style={{ animationDuration: '2.5s' }}>
+          <img src={monsterImg} alt="Chirag" className="w-full h-full object-contain drop-shadow-xl opacity-90" />
         </div>
 
         {/* Obstacles & Coins Rendering Loop */}
-        {obstaclesRef.current.map((obs, i) => (
+        {obstaclesRef.current.map((obs) => (
           <div
-            key={`obs-${i}`}
-            className="absolute bottom-0 z-10 flex items-end justify-center"
+            key={`obs-${obs.id}`}
+            className="absolute bottom-0 z-20 flex items-end justify-center"
             style={{ 
               left: obs.x, 
               width: obs.w, 
               height: obs.h,
-              backgroundColor: obs.type === 'rock' ? '#5d4037' : '#2e7d32', // Fallback
-              borderRadius: obs.type === 'rock' ? '40% 40% 10% 10%' : '50% 50% 0 0',
             }}
           >
-             {/* Simple CSS shapes for now instead of more images to keep it fast */}
-             {obs.type === 'rock' && <div className="w-full h-full bg-stone-600 rounded-t-xl border-b-4 border-stone-800" />}
-             {obs.type === 'bush' && <div className="w-full h-full bg-green-600 rounded-full border-b-4 border-green-800" />}
+             {obs.type === 'tree' ? (
+               <img src={treeImg} alt="Tree" className="w-full h-full object-contain drop-shadow-md scale-110 origin-bottom" />
+             ) : (
+               <div 
+                className="w-full h-full"
+                style={{
+                  backgroundColor: obs.type === 'rock' ? '#5d4037' : '#2e7d32',
+                  borderRadius: obs.type === 'rock' ? '40% 40% 10% 10%' : '50% 50% 0 0',
+                }}
+               >
+                 {obs.type === 'rock' && <div className="w-full h-full bg-stone-600 rounded-t-xl border-b-4 border-stone-800" />}
+                 {obs.type === 'bush' && <div className="w-full h-full bg-green-600 rounded-full border-b-4 border-green-800" />}
+               </div>
+             )}
           </div>
         ))}
 
-        {coinsRef.current.map((c, i) => !c.collected && (
+        {coinsRef.current.map((c) => !c.collected && (
           <div
-            key={`coin-${i}`}
-            className="absolute z-10"
+            key={`coin-${c.id}`}
+            className="absolute z-20"
             style={{ 
               left: c.x, 
-              bottom: -c.y, // c.y is negative in logic relative to player, so flip for CSS bottom
+              bottom: c.y,
               width: 30, 
               height: 30 
             }}
@@ -259,10 +308,15 @@ export default function Game() {
 
       {/* Touch Controls Overlay */}
       <div 
-        className="absolute inset-0 z-40" 
+        className="absolute inset-0 z-40 cursor-pointer" 
         onClick={handleJump}
         onTouchStart={handleJump}
       />
+
+      {/* Hit / Glimpse Overlay (optional visual cue) */}
+      {gameState === "hit" && (
+         <div className="absolute inset-0 z-50 bg-red-500/20 animate-pulse pointer-events-none" />
+      )}
 
       {/* Game Over Modal */}
       <AnimatePresence>
